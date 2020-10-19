@@ -63,10 +63,13 @@ void MainThread(HMODULE DLL)
 
 	// install hack hooks
 	HookManager hookman;
+	CenterCursorPos = (CenterCursorPos_t)hookman.Trampoline((BYTE*)CenterCursorPos, (BYTE*)CenterCursorHooked).gateway;
 	PrintError = (PrintError_t)hookman.Trampoline((BYTE*)0x0043BF30, (BYTE*)LogPrintMsg).gateway;
 	CG_DrawBulletImpacts = (CG_DrawBulletImpacts_t)hookman.Trampoline((BYTE*)CG_DrawBulletImpacts, (BYTE*)CG_DrawBulletImpactsHooked).gateway;
 	RenderScene = (R_RenderScene)hookman.Trampoline((BYTE*)RenderScene, (BYTE*)RenderSceneHooked).gateway;
 	CG_Recoil = (CG_Recoil_t)hookman.Trampoline((BYTE*)CG_Recoil, (BYTE*)CG_RecoilHooked).gateway;
+
+	// add a hook to allow the cursor to move while in game (the game tries to always center the cursor) 
 
 
 	while (!GetAsyncKeyState(VK_END))
@@ -115,7 +118,7 @@ HRESULT __stdcall _EndScene(IDirect3DDevice9* pDevice)
 
 	// draw here
 	// main Window
-
+	
 	if (ImGui::Begin("Main Window"))
 	{
 		ImGui::Checkbox("Draw FPS", &bShowFrameGraph);

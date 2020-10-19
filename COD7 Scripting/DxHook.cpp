@@ -146,11 +146,6 @@ bool DxHook::CacheDeviceViaHailMarry()
 }
 
 
-
-
-
-
-
 void DxHook::CleanUpAndShutdown()
 {
 	DWORD oldProt;

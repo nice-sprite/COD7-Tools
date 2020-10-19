@@ -21,6 +21,14 @@ R_RenderScene			RenderScene = (R_RenderScene)0x6C8CD0/*0x629770L*/;
 CL_SetViewAngles_t		CL_SetViewAngles = (CL_SetViewAngles_t)0x60adf0L;
 CG_Trace_t				CG_Trace = (CG_Trace_t)0x68fd90L;
 CG_Recoil_t				CG_Recoil = (CG_Recoil_t)0x05676C0;
+CenterCursorPos_t		CenterCursorPos = (CenterCursorPos_t)0x5b7700L;
+
+// spawn funcs
+G_Callspawn_t			G_Callspawn = (G_Callspawn_t)0x517580L;
+G_Spawn_t				G_Spawn = (G_Spawn_t)0x4bf260L;
+G_CallSpawnEntity_t		G_CallSpawnEntity = (G_CallSpawnEntity_t)0x5001f0L;
+Gscr_Spawn_t			Gscr_Spawn = (Gscr_Spawn_t)0x7f15c0L;
+
 
 // Game structures
 entityList* g_entities = (entityList*)0x1BFBC84;
@@ -289,4 +297,32 @@ vec3_t* CG_RecoilHooked(int* cgameinfo, vec3_t* viewAngles, vec3_t* origin)
 	if (g_norecoil) return viewAngles;
 	//CBuf_AddText(0, (char*)"say Shooting...");
 	return CG_Recoil(cgameinfo, viewAngles, origin);
+}
+
+BOOL __cdecl CenterCursorHooked()
+{
+	if (GetAsyncKeyState(VK_F1))
+		return true;
+	return CenterCursorPos();
+}
+
+void TrySpawn()
+{
+	//1. get classname, origin, spawnflags. 
+	//2. Scr_SetString(ent->classname, classname)
+	const char* model_name = "zombie_bomb";
+	const char* classname = "script_model";
+	gentity_t* Ent = G_Spawn(); // get ptr to new entity
+	vec3_t offset = { 15.0, 15.0, 0.0 };
+	VectorAdd(offset, cg->refdef.viewOrg, Ent->origin);
+	Ent->classname;
+	Ent->spawnFlags = 0;
+
+	if (Ent)
+	{
+		if (G_CallSpawnEntity(Ent))
+		{
+			G_SetModel(Ent, model_name);
+		}
+	}
 }
