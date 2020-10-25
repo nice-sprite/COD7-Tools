@@ -1,11 +1,17 @@
 #include "common.hpp"
-#include "utils.hpp"
-#include "Engine.hpp"
-#include "COD7.h"
-#include "ImGuiConsole.h"
+#include "./Utility/utils.hpp"
+#include "./Engine/Engine.h"
+#include "./Engine/callbacks.h"
+#include "./Graphics/ImGuiConsole.h"
+
+
+#include <fmt/core.h>
+
 // prototypes
 void MainThread(HMODULE DLL);
+
 HRESULT __stdcall _EndScene(IDirect3DDevice9* pDevice);
+HRESULT __stdcall _Reset(LPDIRECT3DDEVICE9 pDevice, D3DPRESENT_PARAMETERS* pPresentationParameters);
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT __stdcall ImguiWndProc(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 typedef LRESULT(CALLBACK* WNDPROC)(HWND, UINT, WPARAM, LPARAM);
@@ -20,13 +26,12 @@ HANDLE g_ThreadHandle = 0;
 ImGuiContext* g_imguiCtx = nullptr;
 CircularBuffer<float> frames(512);
 
-
-
 //
 
 // original hook vars
 WNDPROC _WndProc;
 EndScene_t endscene;
+Reset_t reset;
 //
 
 
@@ -52,22 +57,42 @@ BOOL WINAPI DllMain(
 	return TRUE;
 }
 
+HookManager g_Hookman;
 void MainThread(HMODULE DLL)
 {
+	
 	// setup
 	g_HWND = GetProcessHwnd();
 	_WndProc = (WNDPROC)GetWindowLongPtr(g_HWND, GWL_WNDPROC);
 	SetWindowLongPtr(g_HWND, GWL_WNDPROC, (LONG_PTR)ImguiWndProc);
-
+	DxHook::CacheDeviceViaEndScene();
 	endscene = DxHook::Hook<EndScene_t>(D3DVTABLE_INDEX::iEndScene, _EndScene);
+	reset = DxHook::VirtualHook<Reset_t>(D3DVTABLE_INDEX::iReset, (Reset_t*)_Reset);
 
 	// install hack hooks
-	HookManager hookman;
-	CenterCursorPos = (CenterCursorPos_t)hookman.Trampoline((BYTE*)CenterCursorPos, (BYTE*)CenterCursorHooked).gateway;
-	PrintError = (PrintError_t)hookman.Trampoline((BYTE*)0x0043BF30, (BYTE*)LogPrintMsg).gateway;
-	CG_DrawBulletImpacts = (CG_DrawBulletImpacts_t)hookman.Trampoline((BYTE*)CG_DrawBulletImpacts, (BYTE*)CG_DrawBulletImpactsHooked).gateway;
-	RenderScene = (R_RenderScene)hookman.Trampoline((BYTE*)RenderScene, (BYTE*)RenderSceneHooked).gateway;
-	CG_Recoil = (CG_Recoil_t)hookman.Trampoline((BYTE*)CG_Recoil, (BYTE*)CG_RecoilHooked).gateway;
+	Engine::CenterCursorPos = (CenterCursorPos_t)g_Hookman.Trampoline(
+		(BYTE*)Engine::CenterCursorPos,
+		(BYTE*)Callbacks::CenterCursorHooked, 
+		"CenterCursor")
+		.gateway;
+
+	Engine::CG_DrawBulletImpacts = (CG_DrawBulletImpacts_t)g_Hookman.Trampoline(
+		(BYTE*)Engine::CG_DrawBulletImpacts,
+		(BYTE*)Callbacks::CG_DrawBulletImpactsHooked,
+		"CG_DrawBulletImpacts")
+		.gateway;
+
+	Engine::RenderScene = (R_RenderScene)g_Hookman.Trampoline(
+		(BYTE*)Engine::RenderScene,
+		(BYTE*)Callbacks::RenderSceneHooked,
+		"RenderScene")
+		.gateway;
+
+	Engine::CG_Recoil = (CG_Recoil_t)g_Hookman.Trampoline(
+		(BYTE*)Engine::CG_Recoil,
+		(BYTE*)Callbacks::CG_RecoilHooked,
+		"CG_Recoil")
+		.gateway;
 
 	// add a hook to allow the cursor to move while in game (the game tries to always center the cursor) 
 
@@ -80,29 +105,38 @@ void MainThread(HMODULE DLL)
 	// restore, clean up, and exit
 	SetWindowLongPtr(g_HWND, GWL_WNDPROC, (LONG_PTR)_WndProc);
 
-	hookman.UninstallAllDetours();
-	ImGui_ImplDX9_Shutdown();
-	ImGui_ImplWin32_Shutdown();
+	g_Hookman.UninstallAllDetours();
+	//DxHook::CleanUpAndShutdown(); // implement later
+	// this releases the d3dDevice, which we dont want because the game is supposed to keep running
+	// instead use ImGui_ImplDX9_InvalidateDeviceObjects();
+	//ImGui_ImplDX9_Shutdown(); 
+
+	ImGui_ImplDX9_InvalidateDeviceObjects();
+	ImGui_ImplWin32_Shutdown(); // this is fine because it just sets IMGUI's copy of the HWND to 0;
 	ImGui::DestroyContext(g_imguiCtx);
 	FreeLibraryAndExitThread(DLL, 0);
 }
 
-auto forward = [](ImGuiConsole<CBuf_AddText_t, int>* self) -> int {
-	self->func(0, self->GetCommand());
-	return 0;
-};
 
 HRESULT __stdcall _EndScene(IDirect3DDevice9* pDevice)
 {
 	static bool init = true;
 	static bool bShowFrameGraph = false;
-	static ImGuiConsole<CBuf_AddText_t, int> console(CBuf_AddText, forward);
+	static ImFont* pFontConsolas = nullptr;
+	auto forward = [](ImGuiConsole<CBuf_AddText_t, int>* self) -> int {
+		self->func(0, self->GetCommand());
+		return 0;
+	};
+	static ImGuiConsole<CBuf_AddText_t, int> console(Engine::CBuf_AddText, forward);
 	if (init)
 	{
 		init = false;
 		g_imguiCtx = ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
 		io.MouseDrawCursor = true;
+		pFontConsolas = io.Fonts->AddFontFromFileTTF("C:/WINDOWS/FONTS/CONSOLA.TTF", 14.0);
+		
+
 		ImGui_ImplWin32_Init(g_HWND);
 		ImGui_ImplDX9_Init(pDevice);
 
@@ -115,6 +149,8 @@ HRESULT __stdcall _EndScene(IDirect3DDevice9* pDevice)
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
+	// set the font to consolas
+	ImGui::PushFont(pFontConsolas);
 
 	// draw here
 	// main Window
@@ -141,26 +177,26 @@ HRESULT __stdcall _EndScene(IDirect3DDevice9* pDevice)
 		ImGui::SameLine();
 		if (ImGui::Button("Launch"))
 		{
-			CBuf_AddText(0, (char*)currentItem.second.c_str());
+			Engine::CBuf_AddText(0, (char*)currentItem.second.c_str());
 		}
 
 		if (ImGui::TreeNode("Hack Options"))
 		{
 			ImGui::Columns(2);
-			if (ImGui::Checkbox("God Mode", &g_god))
+			if (ImGui::Checkbox("God Mode", &Callbacks::god))
 			{
-				CBuf_AddText(0, (char*)"god");
+				Engine::CBuf_AddText(0, (char*)"god");
 			}
 
-			ImGui::Checkbox("No Recoil", &g_norecoil);
-			ImGui::Checkbox("Rapid Fire", &g_rapidfire);
+			ImGui::Checkbox("No Recoil", &Callbacks::norecoil);
+			ImGui::Checkbox("Rapid Fire", &Callbacks::rapidfire);
 
 			ImGui::NextColumn();
 
-			ImGui::Checkbox("Aimbot", &g_aimbot);
-			ImGui::Checkbox("ESP", &g_esp);
+			ImGui::Checkbox("Aimbot", &Callbacks::aimbot);
+			ImGui::Checkbox("ESP", &Callbacks::esp);
 
-			if (ImGui::Checkbox("Unlimited Ammo", &g_ammo))
+			if (ImGui::Checkbox("Unlimited Ammo", &Callbacks::ammo))
 			{
 				// TODO: implement unlimited ammo
 			}
@@ -177,7 +213,7 @@ HRESULT __stdcall _EndScene(IDirect3DDevice9* pDevice)
 
 		if (auto cmd = console.Draw("Console", 0))
 		{
-			CBuf_AddText(0, *cmd);
+			Engine::CBuf_AddText(0, *cmd);
 		}
 
 	}
@@ -185,18 +221,21 @@ HRESULT __stdcall _EndScene(IDirect3DDevice9* pDevice)
 
 	if (ImGui::Begin("Log"))
 	{
-		ImGui::Text(g_errors.str().data());
+		std::string hookDebugInfo = fmt::format("==DirectX Hooks==\n{1}\n\n==game hooks==\n\t{0}",
+			g_Hookman.DebugInfo(),
+			DxHook::Debug());
+		ImGui::Text(hookDebugInfo.c_str());
 		ImGui::SetScrollHereY(1.0);
 	}
 	ImGui::End();
 
-
+	ImGui::PopFont();
 
 	// FPS graph
 	if (bShowFrameGraph)
 	{
 		frames.push(ImGui::GetIO().Framerate);
-		ImGui::SetNextWindowBgAlpha(.2);
+		ImGui::SetNextWindowBgAlpha(.2f);
 
 		ImGui::SetNextWindowPos(ImVec2(0, 0));
 
@@ -214,6 +253,17 @@ HRESULT __stdcall _EndScene(IDirect3DDevice9* pDevice)
 		ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
 	}
 	return endscene(pDevice); // Call original ensdcene so the game can draw
+}
+
+HRESULT __stdcall _Reset(LPDIRECT3DDEVICE9 pDevice, D3DPRESENT_PARAMETERS* pPresentationParameters)
+{
+	ImGui_ImplDX9_InvalidateDeviceObjects();
+	
+	//DebugPrint("Reset called\n");
+	HRESULT result = reset(pDevice, pPresentationParameters);
+	if(result == D3D_OK)
+		ImGui_ImplDX9_CreateDeviceObjects();
+	return result;
 }
 
 LRESULT __stdcall ImguiWndProc(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

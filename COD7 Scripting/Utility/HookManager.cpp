@@ -1,5 +1,8 @@
 #include "HookManager.h"
 #include <capstone/capstone.h>
+#include <capstone/x86.h>
+#include <fmt/core.h>
+#include "utils.hpp"
 int HookManager::CalcHookSize(BYTE* hk)
 {
 	csh handle;
@@ -7,9 +10,20 @@ int HookManager::CalcHookSize(BYTE* hk)
 	size_t count;
 
 	if (cs_open(CS_ARCH_X86, CS_MODE_32, &handle) != CS_ERR_OK)
-		return -1;
+	{
+		cs_support(CS_ARCH_X86);
+		cs_support(CS_MODE_32);
+		auto error = fmt::format("HookManager.cpp:14: error {0} while opening capstone handle\n support CS_ARCH_X86?{1}\n support CS_MODE_32?{2} ",
+			cs_errno(handle),
+			cs_support(CS_ARCH_X86),
+			cs_support(CS_MODE_32));
+		DebugPrint(error);
+		Sleep(5000/2);
+		return 0;
 
-	count = cs_disasm(handle, hk, 20, 0x1000, 0, &insn);
+	}
+
+	count = cs_disasm(handle, hk, CS_MNEMONIC_SIZE, 0x1000, 0, &insn);
 
 	int hookSize = 0;
 	for (int i = 0; i < count && hookSize < 5; i++)
@@ -72,6 +86,13 @@ HOOKINFO HookManager::Trampoline(BYTE* src, BYTE* dst, std::string funcName, siz
 	}
 
 	BYTE* gateway = (BYTE*)VirtualAlloc(NULL, size + 5, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+	SYSTEM_INFO sysInfo;
+	GetSystemInfo(&sysInfo);
+	if (size > sysInfo.dwPageSize)
+	{
+		throw "size exceeds dwPageSize (size is really really big)";
+		return {};
+	}
 	memcpy_s(gateway, size, src, size);
 
 	*(gateway + size) = 0xE9;
@@ -132,13 +153,30 @@ HookInfoList HookManager::UninstallMultipleDetours(HookInfoList& hookList)
 
 bool HookManager::UninstallAllDetours()
 {
-	bool allUninstalled = false;
+	bool allUninstalled = true;
 	auto List = UninstallMultipleDetours(hookInfo);
 	for (auto& entry : List)
 	{
-		allUninstalled |= entry.isHookInstalled;
+		allUninstalled &= entry.isHookInstalled;
 	}
 	return allUninstalled;
+}
+
+std::string HookManager::DebugInfo()
+{
+	std::string dbg = "";
+
+	for (auto hook : hookInfo)
+	{
+		auto str = fmt::format("fn {0} src: {1:#x}, dst: {2:#x} size: {3}\n", 
+			hook.debugFunctionSymbol,
+			(int)hook.src, 
+			(int)hook.dst,
+			(int)hook.originalBytesLength);
+
+		dbg.append(str);
+	}
+	return dbg;
 }
 
 HookManager::~HookManager()

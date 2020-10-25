@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -92,6 +92,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -145,35 +146,37 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="CircularBuffer.h" />
-    <ClInclude Include="COD7.h" />
+    <ClInclude Include="Engine\aimbot.h" />
+    <ClInclude Include="Engine\callbacks.h" />
+    <ClInclude Include="Utility\CircularBuffer.h" />
     <ClInclude Include="common.hpp" />
-    <ClInclude Include="DxHook.h" />
-    <ClInclude Include="Engine.hpp" />
-    <ClInclude Include="HookManager.h" />
-    <ClInclude Include="ImGuiConsole.h" />
-    <ClInclude Include="imgui_impl_dx9.h" />
-    <ClInclude Include="imgui_impl_win32.h" />
-    <ClInclude Include="utils.hpp" />
-    <ClInclude Include="VectorMath.h" />
+    <ClInclude Include="Utility\DxHook.h" />
+    <ClInclude Include="Engine\Engine.h" />
+    <ClInclude Include="Utility\HookManager.h" />
+    <ClInclude Include="Graphics\ImGuiConsole.h" />
+    <ClInclude Include="Graphics\imgui_impl_dx9.h" />
+    <ClInclude Include="Graphics\imgui_impl_win32.h" />
+    <ClInclude Include="Engine\sight.h" />
+    <ClInclude Include="Utility\utils.hpp" />
+    <ClInclude Include="Utility\VectorMath.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CircularBuffer.cpp" />
-    <ClCompile Include="COD7.cpp" />
+    <ClCompile Include="Engine\aimbot.cpp" />
+    <ClCompile Include="Engine\callbacks.cpp" />
+    <ClCompile Include="Utility\CircularBuffer.cpp" />
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="DxHook.cpp" />
-    <ClCompile Include="HookManager.cpp" />
-    <ClCompile Include="ImGuiConsole.cpp" />
-    <ClCompile Include="imgui_impl_dx9.cpp" />
-    <ClCompile Include="imgui_impl_win32.cpp" />
-    <ClCompile Include="VectorMath.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="commands.txt" />
+    <ClCompile Include="Utility\DxHook.cpp" />
+    <ClCompile Include="Engine\Engine.cpp" />
+    <ClCompile Include="Utility\HookManager.cpp" />
+    <ClCompile Include="Graphics\ImGuiConsole.cpp" />
+    <ClCompile Include="Graphics\imgui_impl_dx9.cpp" />
+    <ClCompile Include="Graphics\imgui_impl_win32.cpp" />
+    <ClCompile Include="Engine\sight.cpp" />
+    <ClCompile Include="Utility\utils.cpp" />
+    <ClCompile Include="Utility\VectorMath.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cmd_to_json.py" />
-    <None Include="commands_test.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

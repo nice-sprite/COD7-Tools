@@ -1,5 +1,6 @@
 #include "HookManager.h"
 #include "DxHook.h"
+#include <fmt/core.h>
 
 
 HookManager DxHook::hookManager;
@@ -145,16 +146,15 @@ bool DxHook::CacheDeviceViaHailMarry()
 	return false;
 }
 
-
+//TODO: impl
 void DxHook::CleanUpAndShutdown()
 {
-	DWORD oldProt;
-	if (oEndScene != nullptr)
-	{
-		VirtualProtect((*(void***)pDevice)[42], sizeof(void*), PAGE_EXECUTE_READWRITE, &oldProt);
-		(*(void***)pDevice)[42] = (void*)oEndScene;
-		VirtualProtect((*(void***)pDevice)[42], sizeof(void*), oldProt, &oldProt);
-	}
+
+}
+
+std::string DxHook::Debug()
+{
+	return hookManager.DebugInfo();
 }
 
 HRESULT WINAPI nEndScene(LPDIRECT3DDEVICE9 pDevice)
@@ -165,7 +165,6 @@ HRESULT WINAPI nEndScene(LPDIRECT3DDEVICE9 pDevice)
 	SetEvent(DxHook::hDeviceCapturedEvent);
 	return ret;
 }
-
 
 HRESULT __stdcall nBeginScene(LPDIRECT3DDEVICE9 pDevice)
 {

@@ -5,91 +5,104 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="ImGui/Hooking">
+    <Filter Include="Engine">
+      <UniqueIdentifier>{70fcf450-73c2-48f1-8fd0-2b03a122bc54}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Graphics">
       <UniqueIdentifier>{ee88eac8-74b7-4d78-9728-e0dc9655e1f5}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Utility\DxHook.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\HookManager.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\ImGuiConsole.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\imgui_impl_dx9.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\imgui_impl_win32.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\utils.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\VectorMath.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\aimbot.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\sight.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
     <ClInclude Include="common.hpp">
-      <Filter>ImGui/Hooking</Filter>
+      <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="CircularBuffer.h">
-      <Filter>ImGui/Hooking</Filter>
+    <ClInclude Include="Utility\CircularBuffer.h">
+      <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="DxHook.h">
-      <Filter>ImGui/Hooking</Filter>
+    <ClInclude Include="Engine\callbacks.h">
+      <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="HookManager.h">
-      <Filter>ImGui/Hooking</Filter>
-    </ClInclude>
-    <ClInclude Include="imgui_impl_dx9.h">
-      <Filter>ImGui/Hooking</Filter>
-    </ClInclude>
-    <ClInclude Include="imgui_impl_win32.h">
-      <Filter>ImGui/Hooking</Filter>
-    </ClInclude>
-    <ClInclude Include="utils.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="COD7.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="VectorMath.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ImGuiConsole.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Engine\Engine.h">
+      <Filter>Engine</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CircularBuffer.cpp">
-      <Filter>ImGui/Hooking</Filter>
-    </ClCompile>
-    <ClCompile Include="DxHook.cpp">
-      <Filter>ImGui/Hooking</Filter>
-    </ClCompile>
-    <ClCompile Include="HookManager.cpp">
-      <Filter>ImGui/Hooking</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui_impl_dx9.cpp">
-      <Filter>ImGui/Hooking</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui_impl_win32.cpp">
-      <Filter>ImGui/Hooking</Filter>
-    </ClCompile>
-    <ClCompile Include="COD7.cpp">
-      <Filter>Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="VectorMath.cpp">
+    <ClCompile Include="Engine\callbacks.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ImGuiConsole.cpp">
+    <ClCompile Include="Utility\DxHook.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Engine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\HookManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\ImGuiConsole.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\imgui_impl_dx9.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\imgui_impl_win32.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\VectorMath.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\aimbot.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\sight.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\CircularBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="commands.txt">
-      <Filter>Resource Files</Filter>
-    </Text>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="commands_test.json">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="cmd_to_json.py">
       <Filter>Resource Files</Filter>
     </None>

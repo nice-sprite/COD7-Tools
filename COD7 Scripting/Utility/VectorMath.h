@@ -39,6 +39,8 @@ void VectorNormalize(vec3_t& v1, vec3_t& out);
 
 void AngleVectors(const vec3_t angles, vec3_t* forward, vec3_t* right, vec3_t* up);
 
+void VectorToAngles(const vec3_t value1, vec3_t& angles);
+
 
 //DotProduct(x, y)
 //VectorSubtract(a, b, c)

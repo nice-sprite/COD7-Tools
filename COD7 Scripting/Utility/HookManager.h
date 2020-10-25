@@ -37,6 +37,8 @@ public:
 	HookInfoList UninstallMultipleDetours(HookInfoList& hookList);
 	bool UninstallAllDetours();
 
+	std::string DebugInfo();
+
 	~HookManager();
 
 };

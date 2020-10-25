@@ -181,7 +181,7 @@ enum D3DVTABLE_INDEX {
 class DxHook
 {
 
-private:
+public:
 	static inline void ResetCaptureEvent();
 	static inline bool WaitForDevice(int milliseconds = 200);
 
@@ -265,14 +265,21 @@ public:
 	template<typename T>
 	static T VirtualHook(D3DVTABLE_INDEX idx, T* dst)
 	{
-		if (!CopyVMT() || !dst) return nullptr;
+		if (!pDevice)
+		{
+			CacheDeviceViaEndScene();
+		}
+		if (!CopyVMT() || !dst || !pDevice) return nullptr;
 		DWORD prot;
 		return DxHook::WithMemPrivledges<T>([=]()->T {
-			auto ret = (T)(*(void***)pDevice)[idx];
+			T ret = (T)(*(void***)pDevice)[idx];
 			(*(void***)pDevice)[idx] = dst;
 			return ret;
 			}, (*(void***)pDevice)[idx]);
 	}
 	static void CleanUpAndShutdown();
+
+	static std::string Debug();
+	
 };
 

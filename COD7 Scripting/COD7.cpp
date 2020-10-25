@@ -1,9 +1,11 @@
 #define _USE_MATH_DEFINES // for C++
 #include "COD7.h"
-#include "VectorMath.h"
+#include "./Utility/VectorMath.h"
+#include "Engine/Engine.hpp"
 #include <cmath>
 #include <cstring>
 #include <cfloat> // for max float value
+#include <fmt/core.h>
 
 bool g_god = false;
 bool g_norecoil = false;
@@ -12,29 +14,15 @@ bool g_aimbot = false;
 bool g_esp = false;
 extern bool g_ammo = false;
 
-// Game function definitions/locations
-CG_DrawBulletImpacts_t	CG_DrawBulletImpacts = (CG_DrawBulletImpacts_t)0x799a90;
-CBuf_AddText_t			CBuf_AddText = (CBuf_AddText_t)0x49b930L;
-R_AddCmdDrawText_t		R_AddCmdDrawText = (R_AddCmdDrawText_t)0x6d6460L;
-RegisterFont_			R_RegisterFont = (RegisterFont_)0x004DD5F0;/*0x6d3010L;*/
-R_RenderScene			RenderScene = (R_RenderScene)0x6C8CD0/*0x629770L*/;
-CL_SetViewAngles_t		CL_SetViewAngles = (CL_SetViewAngles_t)0x60adf0L;
-CG_Trace_t				CG_Trace = (CG_Trace_t)0x68fd90L;
-CG_Recoil_t				CG_Recoil = (CG_Recoil_t)0x05676C0;
-CenterCursorPos_t		CenterCursorPos = (CenterCursorPos_t)0x5b7700L;
 
 // spawn funcs
-G_Callspawn_t			G_Callspawn = (G_Callspawn_t)0x517580L;
-G_Spawn_t				G_Spawn = (G_Spawn_t)0x4bf260L;
-G_CallSpawnEntity_t		G_CallSpawnEntity = (G_CallSpawnEntity_t)0x5001f0L;
-Gscr_Spawn_t			Gscr_Spawn = (Gscr_Spawn_t)0x7f15c0L;
+//G_Callspawn_t			G_Callspawn = (G_Callspawn_t)0x517580L;
+//G_Spawn_t				G_Spawn = (G_Spawn_t)0x4bf260L;
+//G_CallSpawnEntity_t		G_CallSpawnEntity = (G_CallSpawnEntity_t)0x5001f0L;
+//Gscr_Spawn_t			Gscr_Spawn = (Gscr_Spawn_t)0x7f15c0L;
 
 
-// Game structures
-entityList* g_entities = (entityList*)0x1BFBC84;
-cg_t* cg = (cg_t*)0x29C69430;
-CLocalPlayer* localplayer = (CLocalPlayer*)0x01C08B40;
-weapons* weapon = (weapons*)0x0BE19A8;
+
 
 // map names with console launch command
 std::unordered_map<std::string, std::string> maps = {
@@ -53,199 +41,91 @@ std::unordered_map<std::string, std::string> maps = {
 
 
 // Functions
-void CG_GetTagPos(void* ent, void* DObj, int tag, vec3_t* outvec)
-{
-	__asm
-	{
-		push outvec
-		push tag
-		push DObj
-		push ent
-		mov eax, 0x44A0A0
-		call eax
-		add esp, 0x10
-	}
-}
-
-PVOID GetDObj(UINT clientnum, void* a2)
-{
-	__asm
-	{
-		push a2
-		push clientnum
-		mov eax, 0x501850
-		call eax
-		add esp, 0x8
-	}
-}
-
-bool GetTagPosition(entityClass* ent, int Tag, vec3_t* vOut)
-{
-	PVOID DObj = GetDObj(ent->entNum, (void*)ent->TagInfo); // TagInfo == *( int *)( ent + 0x4 )
-
-	if (!DObj)
-	{
-		return false;
-	}
-	CG_GetTagPos((void*)ent, DObj, Tag, vOut);
-	return true;
-}
-
-void DrawEngineString(char* text, float x, float y, float size, vec4_t* color)
-{
-	//void* dwFont = *(void**)0x02576148;
-	//void* dwFont = R_RegisterFont("fonts/consoleFont", 0);
-	static void* dwFont = R_RegisterFont("fonts/normalfont", 1);
-
-	//color = *(float**)0x0A5E794;
-	R_AddCmdDrawText(text, strlen(text), dwFont, x, y, size, size, 0, color, 0);
-	//R_AddCmdDrawText(text, strlen(text), dwFont, x, y + 50, size, size, 0, color, 0);
-
-}
-
-bool WorldToScreen(refdef_t* refdef, vec3_t dst, vec3_t& screen)
-{
-	vec3_t transform;
-	float xCenter = refdef->width * .5f, yCenter = refdef->height * .5f;
-
-	static float fovy = 51.077193f;
-	static float fovx = 80.690943f;
-
-	static float px = (float)tan(fovx * M_PI / 360.0f);
-	static float py = (float)tan(fovy * M_PI / 360.0f);
-	float z = 0.f;
-
-	//VectorSubtract((float*)&dst, (float*)&refdef->viewOrg, (float*)&transform);
-	VectorSubtract(dst, refdef->viewOrg, transform);
-
-	z = DotProduct(transform, refdef->viewAxis[0]);
-	if (z <= .1f) return false;
-	screen.x = xCenter - DotProduct(transform, refdef->viewAxis[1]) * xCenter / (z * px);
-	screen.y = yCenter - DotProduct(transform, refdef->viewAxis[2]) * yCenter / (z * py);
-	return true;
-
-}
-
-void TestEsp()
-{
-	vec3_t screenPos{};
-	vec3_t entityOrigin;
-	for (int i = 0; i < 64; i++)
-	{
-		if (g_entities->g_entities[i].ent != nullptr)
-		{
-			entityOrigin = g_entities->g_entities[i].ent->CORRECTorigin;
-			//correct for head pos
-			vec3_t head = { 0.0f, 0.0f, 50.f };
-			VectorAdd(entityOrigin, head, entityOrigin);
-		}
-		else continue;
-
-		bool onScreen = WorldToScreen(&cg->refdef, entityOrigin, screenPos);
-
-		if (onScreen && g_entities->g_entities[i].ent->health > 0)
-		{
-			vec4_t color = { 1.0, 0.f, 0.f, 1.0 };
-			trace_t trace;
-			vec3_t zero = {};
-			CG_Trace(&trace, &cg->refdef.viewOrg, &zero, &zero, &entityOrigin, 0, 0x803003, &zero);
-			if (trace.fraction >= .97f)
-			{
-				color = { .5f, 0.f, 1.f, 1.0 };
-			}
-			DrawEngineString((char*)".\0", screenPos.x, screenPos.y, 1.0f, &color);
-		}
-
-	}
-}
-
-float Radians(float degrees) { return (M_PI / 180.f) * degrees; }
-
-vec2_t CalcAngles(vec3_t& src, vec3_t& dst, vec3_t viewAxis[3])
-{
-	vec3_t deltaVec, normalized;
-	VectorSubtract(dst, src, deltaVec);
-	//VectorNormalize(deltaVec, deltaVec);
-	float magnitude = VectorMagnitude(deltaVec);
-	VectorNormalize(deltaVec, normalized);
-	float yaw = -atan2(normalized.x, normalized.y) * (180.f / M_PI) + 30.0f;
-
-	float pitch = atan2(deltaVec.z, magnitude) * (180.f / M_PI); // x
-	//VectorNormalize(deltaVec, normalized);
-
-	//VectorMultiply(viewAxis[1], normalized, deltaVec); // yaw
-	//float yaw = asin(deltaVec.x + deltaVec.y + deltaVec.z) * (180.f / M_PI);
-
-	//VectorMultiply(viewAxis[2], normalized, deltaVec); // pitch
-	//float pitch = -asin(Radians(deltaVec.x + deltaVec.y + deltaVec.z)) * (180.f / M_PI);
-
-	return vec2_t{ yaw, pitch };
-}
 
 void Aimbot()
 {
 	if (!GetAsyncKeyState(VK_RBUTTON))
 		return;
 
-	vec3_t entityOrigin;
-	vec3_t angles = {};
-	float dist = FLT_MAX;
-	vec3_t deltaVec;
-	int closestEnt = -1;
-	vec3_t* currentAngles = (vec3_t*)0x2911E20;
-	for (int i = 0; i < 64; i++)
+
+	_centity_t* closest = nullptr;
+	float closestDistance = FLT_MAX;
+
+	for (int i = 0; i < 1024; i++)
 	{
-		if (g_entities->g_entities[i].ent != nullptr)
+		_centity_t* ent = CG_GetEntity(0, i);
+		// make sure ent is alive and a zombie
+		if (ent && !ent->pose.isRagdoll && ent->pose.eType == 0x10)
 		{
-			entityOrigin = g_entities->g_entities[i].ent->CORRECTorigin;
-			//GetTagPosition(g_entities->g_entities[i].ent, 1, &entityOrigin);
-			if (entityOrigin.x == 0 && entityOrigin.y == 0 && entityOrigin.z == 0)
-				continue;
-			VectorSubtract(entityOrigin, cg->refdef.viewOrg, deltaVec);
-			float mag = VectorMagnitude(deltaVec);
-			if (mag < dist && g_entities->g_entities[i].ent->health > 0)
+			vec3_t head;
+			vec3_t currentDist;
+			GetTagPos(ent, "j_neck", &head);
+			VectorSubtract(head, cg->refdef.viewOrg, currentDist);
+			float mag = VectorMagnitude(currentDist);
+
+			if (mag < closestDistance)
 			{
-				dist = mag;
-				closestEnt = i;
+				closestDistance = mag;
+				closest = ent;
 			}
 		}
 	}
-	if (closestEnt >= 0)
+
+
+	// by now, we have iterated through and found the closest entity to us, so lets aim at it
+	if (closest != nullptr && !closest->pose.isRagdoll)
 	{
-		entityOrigin = g_entities->g_entities[closestEnt].ent->CORRECTorigin;
-		vec3_t adjust{ 0.f, 0.f, 45.f };
-		VectorAdd(entityOrigin, adjust, entityOrigin);
-		vec2_t v = CalcAngles(cg->refdef.viewOrg, entityOrigin, cg->refdef.viewAxis);
-		currentAngles->x = -v.y; // pitch
-		currentAngles->y = v.x; // yaw
+		vec3_t headPosition = { 0.f, 0.f, 0.f };
+		vec3_t* currentAngles = (vec3_t*)0x2911E20;
+		vec3_t deltaVec{};
+		vec3_t angleVec{};
+
+		GetTagPos(closest, "j_head", &headPosition);
+		VectorSubtract(headPosition, cg->refdef.viewOrg, deltaVec);
+		VectorToAngles(deltaVec, angleVec);
+		currentAngles->x = angleVec.x; // pitch
+		currentAngles->y = angleVec.y - 61.5f; // yaw
+
 	}
-	//for (int i = 1; i < 32; i++)
-	//{
-	//	if (g_entities->g_entities[i].ent != nullptr)
-	//	{
-
-	//		entityOrigin = g_entities->g_entities[i].ent->CORRECTorigin;
-	//		//correct for head pos
-	//		vec3_t head = { 0.0f, 0.0f, 50.f };
-	//		VectorAdd(entityOrigin, head, entityOrigin);
-	//	}
-	//	else continue;
-
-	//	if (g_entities->g_entities[i].ent->health > 0)
-	//	{
-	//		vec2_t v = CalcAngles(cg->refdef.viewOrg, entityOrigin, cg->refdef.viewAxis);
-
-	//		angles = { v.x, v.y, 0.f };
-
-
-	//		//CL_SetViewAngles(0, &aimAt);
-	//	}
-	//}
-
-
+	
 
 }
 
+void Esp()
+{
+	int count = 0;
+	DWORD viewMatrix = 0x00BA6970;
+
+	for (int i = 0; i < 1024; i++)
+	{
+		_centity_t* ent = CG_GetEntity(0, i);
+		if (ent)
+		{
+			vec3_t head;
+			vec2_t screenPos;
+			GetTagPos(ent, "j_neck", &head);
+			bool onScreen = WorldToScreenMatrix(
+				head,
+				screenPos, 
+				(FLOAT*)viewMatrix, 
+				cg->refdef.width,
+				cg->refdef.height
+			);
+
+			// checking if ragdoll will work for now, later reverse Cscr_IsAlive to check eFlags
+			if (onScreen && !ent->pose.isRagdoll && ent->pose.eType == 0x10)
+			{
+				vec4_t color = { 1.0, 0.f, 0.5f, 1.0f };
+				DrawEngineString((char*)"o\0", screenPos.x, screenPos.y, 1.0f, &color);
+				count++;
+			}
+		}
+	}
+	vec4_t c = { 1.0, 1.0f, 0.5f, 1.0f };
+	auto str = fmt::format("valid ents: {}", count);
+	DrawEngineString((char*)str.c_str(), 10, 30, 1.0f, &c);
+
+}
 
 // Hook/Custom versions of Game Functions
 void CG_DrawBulletImpactsHooked(int localClientNum, void* entityOrigin, unsigned __int16 rand, void* playerState_s, int weapID, int EVENT_ID, bool bADS_maybe)
@@ -277,8 +157,23 @@ void* R_RegisterFontHooked(const char* FontName, int Unknown1)
 
 void RenderSceneHooked(int a1, int a2)
 {
-	if (g_esp) TestEsp();
+	if (g_esp) Esp();
+
 	if (g_aimbot) Aimbot();
+
+	//temp fix for mouse input issue described in CenterCursorHooked()
+	static int** in_mouse = (int**)0x0276C098;
+	static bool* b_in_mouse = (bool*)0x0276C0C1;
+
+	if (GetAsyncKeyState(VK_MENU)) {
+		*((*in_mouse) + 0x18) = false;
+		*b_in_mouse = false;
+	}
+	else {
+		*((*in_mouse) + 0x18) = true;
+		*b_in_mouse = true;
+	}
+
 	return RenderScene(a1, a2);
 }
 
@@ -287,42 +182,26 @@ vec3_t* CL_SetViewAnglesHooked(int clientNum, vec3_t* viewangles)
 	return viewangles;
 }
 
-char CG_TraceHooked(trace_t* trace, vec3_t* start, vec3_t* mins, vec3_t* maxs, vec3_t* end, int skip, DWORD mask, vec3_t* vNull)
-{
-	return true;
-}
-
+// TODO move 
 vec3_t* CG_RecoilHooked(int* cgameinfo, vec3_t* viewAngles, vec3_t* origin)
 {
 	if (g_norecoil) return viewAngles;
-	//CBuf_AddText(0, (char*)"say Shooting...");
 	return CG_Recoil(cgameinfo, viewAngles, origin);
 }
 
 BOOL __cdecl CenterCursorHooked()
 {
-	if (GetAsyncKeyState(VK_F1))
-		return true;
-	return CenterCursorPos();
-}
+	// changing these globals actually make the function not be called at all anymore
+	// once they have been set to false, they cannot be unset from this function
+	// temp work-around: we dont check the keystate in the same function as we set the variables with
+	// keystate polling temporarily moved to RenderSceneHooked
+	//TODO implement keyboard hook instead of polling per-frame
+	static int** in_mouse = (int**)0x0276C098;
+	static bool* b_in_mouse = (bool*)0x0276C0C1;
 
-void TrySpawn()
-{
-	//1. get classname, origin, spawnflags. 
-	//2. Scr_SetString(ent->classname, classname)
-	const char* model_name = "zombie_bomb";
-	const char* classname = "script_model";
-	gentity_t* Ent = G_Spawn(); // get ptr to new entity
-	vec3_t offset = { 15.0, 15.0, 0.0 };
-	VectorAdd(offset, cg->refdef.viewOrg, Ent->origin);
-	Ent->classname;
-	Ent->spawnFlags = 0;
-
-	if (Ent)
+	if (*b_in_mouse || *((*in_mouse) + 0x18))
 	{
-		if (G_CallSpawnEntity(Ent))
-		{
-			G_SetModel(Ent, model_name);
-		}
+		return CenterCursorPos();
 	}
 }
+

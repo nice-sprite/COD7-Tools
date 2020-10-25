@@ -5,7 +5,7 @@
 
 float DotProduct(vec3_t& v1, vec3_t& v2)
 {
-	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+	return (v1.x * v2.x) + (v1.y * v2.y) + (v1.z * v2.z);
 }
 
 void VectorSubtract(vec3_t& v1, vec3_t& v2, vec3_t& result)
@@ -102,6 +102,44 @@ void AngleVectors(const vec3_t angles, vec3_t* forward, vec3_t* right, vec3_t* u
 		up->y = (cr * sp * sy + -sr * cy);
 		up->z = cr * cp;
 	}
+}
+
+void VectorToAngles(const vec3_t value1, vec3_t& angles) {
+	float	forward;
+	float	yaw, pitch;
+
+	if (value1.y == 0 && value1.x == 0) {
+		yaw = 0;
+		if (value1.z > 0) {
+			pitch = 90;
+		}
+		else {
+			pitch = 270;
+		}
+	}
+	else {
+		if (value1.x) {
+			yaw = (atan2(value1.y, value1.x) * 180 / M_PI);
+		}
+		else if (value1.y > 0) {
+			yaw = 90;
+		}
+		else {
+			yaw = 270;
+		}
+		if (yaw < 0) {
+			yaw += 360;
+		}
+
+		forward = sqrt(value1.x * value1.x + value1.y * value1.y);
+		pitch = (atan2(value1.z, forward) * 180 / M_PI);
+		if (pitch < 0) {
+			pitch += 360;
+		}
+	}
+	angles.x = -pitch; //[PITCH] 
+	angles.y = yaw;//[YAW]
+	angles.z = 0;//[ROLL]
 }
 
 
