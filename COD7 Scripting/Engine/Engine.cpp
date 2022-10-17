@@ -14,7 +14,7 @@ std::unordered_map<std::string, std::string> maps = {
 	{"Shi No Numa",			"devmap zombie_cod5_sumpf"},
 	{"Der Riese",			"devmap zombie_cod5_factory"},
 	{"Ascension",			"devmap zombie_cosmodrome"},
-	{"Call of The Dead",	"devmap zombie_coast"},
+	{"Call of the Dead",	"devmap zombie_coast"},
 	{"Shangri-La",			"devmap zombie_temple"},
 	{"Moon",				"devmap zombie_moon"}
 };
